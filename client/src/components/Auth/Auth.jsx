@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
     Button,
     Grid,
@@ -10,25 +11,63 @@ import {
 import useStyles from './styles'
 import LockOutlinedIcon from '@material-ui/icons/LockOutlined'
 import Input from './Input'
+import { GoogleLogin } from 'react-google-login'
+import Icon from './icon'
+import  { useDispatch } from 'react-redux'
+import { signup, signin } from '../../actions/auth'
+import { AUTH } from '../../constants/actionTypes'
+
+const initialState = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+}
 
 const Auth = () => {
     const [showPassword, setShowPassword] = useState(false)
     const [isSignUp, setIsSignUp] = useState(false)
+    const [formData, setFormData] = useState(initialState)
+    const dispatch = useDispatch()
+    const navigate = useNavigate()
     const classes = useStyles()
 
-    const handleChange = () => {
-        
+    const handleChange = e => {
+        setFormData({...formData, [e.target.name]: e.target.value})
     }
 
     const switchMode = () => {
         setIsSignUp(!isSignUp)
-        handleShowPassword(false)
+        setShowPassword(false)
     }
 
     const handleShowPassword = () => setShowPassword(!showPassword)
 
-    const handleSubmit = () => {
+    const handleSubmit = e => {
+        e.preventDefault()
+        if(isSignUp) {
+            dispatch(signup(formData, navigate))
+        } else {
+            dispatch(signin(formData, navigate))
+        }
+    }
 
+    const googleSuccess = async res => {
+        const result = res?.profileObj
+        const token = res?.tokenId
+
+        try {
+            dispatch({type: AUTH, data: {result, token}})
+            navigate("/")
+        } catch (error) {
+           console.log(error) 
+        }
+    }
+
+    const googleFailure = (error) => {
+        console.log('Google sign in was unsuccessful. Please try later.')
+        console.log(error)
     }
 
     return <Container component="main" maxWidth="xs">
@@ -93,6 +132,24 @@ const Auth = () => {
                         isSignUp ? 'Sign Up' : 'Sign In'
                     }
                 </Button>
+                <GoogleLogin
+                    clientId={'1068850605287-o1pignk020ft6da6c5ijovube2km1k49.apps.googleusercontent.com'}
+                    render={props => <Button
+                            onClick={props.onClick}
+                            disabled={props.disabled}
+                            startIcon={<Icon />}
+                            fullWidth
+                            color="primary"
+                            variant='contained'
+                            className={classes.boobleButton}
+                        >
+                            Google Sign In
+                        </Button>
+                    }
+                    cookiePolicy='single_host_origin'
+                    onSuccess={googleSuccess}
+                    onFailure={googleFailure}
+                />
                 <Grid container justifyContent="center">
                     <Grid item>
                         <Button  onClick={switchMode}>
